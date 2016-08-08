@@ -499,14 +499,15 @@ fn build(src: &Path, target: &Target) {
             }
 
             if (!target.llvm_target().starts_with("thumbv7em") ||
+                !target.llvm_target().starts_with("thumbv7a") ||
                 target.features().map(|f| f.contains("+soft-float")) == Some(true) ||
                 target.cpu().is_none()) && SOFT_FLOAT_BLACKLIST.contains(source) {
                 continue;
             }
 
             if (target.cpu() == Some("cortex-m4") ||
-                           (target.cpu() == Some("cortex-m7") &&
-                            target.features().map(|f| f.contains("+fp-only-sp")) == Some(true))) &&
+                (target.cpu() == Some("cortex-m7") &&
+                 target.features().map(|f| f.contains("+fp-only-sp")) == Some(true))) &&
                SP_FPU_BLACKLIST.contains(source) {
                 continue;
             }
@@ -533,6 +534,10 @@ fn build(src: &Path, target: &Target) {
         if target.llvm_target().contains("v7em") {
             config.flag("-march=armv7e-m");
         }
+
+        if target.llvm_target().contains("v7a") {
+            config.flag("-march=armv7-a");
+        }
     }
 
     // CPU optimization
@@ -557,6 +562,11 @@ fn build(src: &Path, target: &Target) {
         } else if target.features().map(|f| f.contains("+soft-float")) != Some(true) {
             config.flag("-mfpu=fpv5-d16");
         }
+    }
+
+    if target.cpu().map_or(false, |c| c.starts_with("cortex-a")) &&
+       target.features().map(|f| f.contains("+soft-float")) != Some(true) {
+        config.flag("-mfpu=vfpv3-d16");
     }
 
     config.compile("libcompiler-rt.a");
